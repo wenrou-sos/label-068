@@ -32,10 +32,10 @@ class Flower:
         self.sway_offset = random.uniform(0, math.pi * 2)
         self.sway_speed = random.uniform(0.5, 1.5)
 
-    def update(self, dt):
+    def update(self, dt, respawn_mult=1.0):
         self.sway_offset += self.sway_speed * dt
         if self.wilted:
-            self.respawn_timer += dt
+            self.respawn_timer += dt * respawn_mult
             if self.respawn_timer >= self.respawn_delay:
                 self.respawn()
 

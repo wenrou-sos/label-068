@@ -33,7 +33,7 @@ def draw_background(screen, camera_x, camera_y, season_index):
                 pygame.draw.circle(screen, grass_color, (sx + offset, sy + offset), 3)
 
 
-def draw_hud(screen, hive, bee, upgrade, season_index, season_timer, day_count, hornets, flowers, camera_x, camera_y):
+def draw_hud(screen, hive, bee, upgrade, season_index, season_timer, day_count, hornets, flowers, camera_x, camera_y, weather=None):
     honey_text = FONT_SMALL.render(f"🍯 蜂蜜: {int(hive.honey)}", True, BROWN)
     pollen_text = FONT_SMALL.render(f"🌸 花粉: {int(hive.beebread)}", True, PURPLE)
     score_text = FONT_MEDIUM.render(f"得分: {hive.get_score()}", True, BLACK)
@@ -49,6 +49,13 @@ def draw_hud(screen, hive, bee, upgrade, season_index, season_timer, day_count, 
     if upgrade.skill_points > 0:
         screen.blit(sp_text, (220, 62))
     screen.blit(season_text, (SCREEN_WIDTH - 160, 10))
+
+    if weather:
+        from weather import WEATHER_INFO
+        w_info = WEATHER_INFO.get(weather.current, {})
+        w_name = w_info.get("name", "")
+        w_text = FONT_MEDIUM.render(w_name, True, WHITE)
+        screen.blit(w_text, (SCREEN_WIDTH - 160, 65))
 
     exp_w = 120
     exp_h = 8

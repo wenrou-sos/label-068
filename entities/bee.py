@@ -47,7 +47,7 @@ class Bee:
         space_p = self.max_pollen_carried - self.pollen_carried
         return space_n > 0 or space_p > 0
 
-    def update(self, dt, keys, flowers, hive, pesticides, hornets):
+    def update(self, dt, keys, flowers, hive, pesticides, hornets, weather=None):
         if self.dead:
             return
 
@@ -68,6 +68,8 @@ class Bee:
         else:
             self.poison_timer = 0
 
+        stamina_mult = weather.get_stamina_drain_mult() if weather else 1.0
+
         dx, dy = 0, 0
         if not self.collecting and not self.returning:
             if keys[pygame.K_LEFT] or keys[pygame.K_a]:
@@ -84,7 +86,7 @@ class Bee:
                 dx /= length
                 dy /= length
                 self.angle = math.atan2(dy, dx)
-                self.stamina -= 5 * dt
+                self.stamina -= 5 * stamina_mult * dt
 
         if self.returning:
             dx = self.hive_x - self.x
@@ -96,9 +98,10 @@ class Bee:
                 dx /= dist
                 dy /= dist
                 self.angle = math.atan2(dy, dx)
-                self.stamina -= 3 * dt
+                self.stamina -= 3 * stamina_mult * dt
 
-        move_speed = self.speed * self.upgrade.get_speed_mult() * (0.6 if self.poisoned else 1.0)
+        weather_speed = weather.get_speed_mult(self.angle) if weather else 1.0
+        move_speed = self.speed * self.upgrade.get_speed_mult() * weather_speed * (0.6 if self.poisoned else 1.0)
         self.x += dx * move_speed * dt
         self.y += dy * move_speed * dt
 
@@ -122,7 +125,7 @@ class Bee:
             else:
                 effective_time = self.collect_target.collect_time * self.upgrade.get_collect_speed_mult()
                 self.collect_progress += dt
-                self.stamina -= 2 * dt
+                self.stamina -= 2 * stamina_mult * dt
                 if self.collect_progress >= effective_time:
                     space_n = self.max_nectar_carried - self.nectar_carried
                     space_p = self.max_pollen_carried - self.pollen_carried

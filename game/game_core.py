@@ -17,6 +17,7 @@ from game.ui import (
 )
 from leaderboard import load_leaderboard, add_entry, is_high_score
 from upgrade import UpgradeSystem
+from weather import WeatherSystem
 
 
 MENU_ITEMS = ["开始游戏", "排行榜", "退出游戏"]
@@ -38,6 +39,7 @@ class Game:
         self.final_rank = ""
         self.upgrade = UpgradeSystem()
         self.upgrade_selected = 0
+        self.weather = WeatherSystem()
         self.reset()
 
     def reset(self):
@@ -78,6 +80,7 @@ class Game:
         self.camera_y = 0
         self.score_for_speed = 0
         self.upgrade_selected = 0
+        self.weather = WeatherSystem()
 
     def get_season(self):
         return SEASONS[self.season_index % 4]
@@ -208,16 +211,19 @@ class Game:
         speed_bonus = min(score / 300, 1.5)
         self.bee.speed = self.bee.speed_base * (1 + speed_bonus * 0.5)
 
-        self.bee.update(dt, keys, self.flowers, self.hive, self.pesticides, self.hornets)
+        self.bee.update(dt, keys, self.flowers, self.hive, self.pesticides, self.hornets, self.weather)
 
+        respawn_mult = self.weather.get_flower_respawn_mult()
         for flower in self.flowers:
-            flower.update(dt)
+            flower.update(dt, respawn_mult)
 
         for pest in self.pesticides:
             pest.update(dt)
 
         for hornet in self.hornets:
             hornet.update(dt, self.bee, score)
+
+        self.weather.update(dt, self.get_season())
 
         self.hornet_timer += dt
         spawn_interval = max(8, self.hornet_spawn_interval - score / 100)
@@ -275,8 +281,12 @@ class Game:
             draw_hud(
                 self.screen, self.hive, self.bee, self.upgrade,
                 self.season_index, self.season_timer, self.day_count,
-                self.hornets, self.flowers, self.camera_x, self.camera_y
+                self.hornets, self.flowers, self.camera_x, self.camera_y,
+                self.weather
             )
+            self.weather.draw_effects(self.screen)
+            self.weather.draw_fog(self.screen)
+            self.weather.draw_notification(self.screen)
             if self.state == "upgrade_panel":
                 draw_upgrade_panel(self.screen, self.upgrade, self.upgrade_selected)
         elif self.state == "gameover":
