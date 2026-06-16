@@ -7,19 +7,22 @@ from config import (
 
 
 class Bee:
-    def __init__(self, x, y):
+    def __init__(self, x, y, upgrade_system):
         self.x = x
         self.y = y
         self.hive_x = x
         self.hive_y = y
         self.speed_base = 120
         self.speed = self.speed_base
-        self.stamina = 100
+        self.base_max_stamina = 100
         self.max_stamina = 100
-        self.nectar_carried = 0
+        self.stamina = 100
+        self.base_max_nectar = 50
         self.max_nectar_carried = 50
-        self.pollen_carried = 0
+        self.nectar_carried = 0
+        self.base_max_pollen = 40
         self.max_pollen_carried = 40
+        self.pollen_carried = 0
         self.collecting = False
         self.collect_target = None
         self.collect_progress = 0
@@ -30,6 +33,14 @@ class Bee:
         self.dead = False
         self.poisoned = False
         self.poison_timer = 0
+        self.upgrade = upgrade_system
+        self.apply_upgrades()
+
+    def apply_upgrades(self):
+        self.max_stamina = int(self.base_max_stamina * self.upgrade.get_stamina_mult())
+        self.max_nectar_carried = int(self.base_max_nectar * self.upgrade.get_capacity_mult())
+        self.max_pollen_carried = int(self.base_max_pollen * self.upgrade.get_capacity_mult())
+        self.speed = self.speed_base * self.upgrade.get_speed_mult()
 
     def has_carry_space(self):
         space_n = self.max_nectar_carried - self.nectar_carried
@@ -87,7 +98,7 @@ class Bee:
                 self.angle = math.atan2(dy, dx)
                 self.stamina -= 3 * dt
 
-        move_speed = self.speed * (0.6 if self.poisoned else 1.0)
+        move_speed = self.speed * self.upgrade.get_speed_mult() * (0.6 if self.poisoned else 1.0)
         self.x += dx * move_speed * dt
         self.y += dy * move_speed * dt
 
@@ -109,9 +120,10 @@ class Bee:
                 self.collecting = False
                 self.collect_target = None
             else:
+                effective_time = self.collect_target.collect_time * self.upgrade.get_collect_speed_mult()
                 self.collect_progress += dt
                 self.stamina -= 2 * dt
-                if self.collect_progress >= self.collect_target.collect_time:
+                if self.collect_progress >= effective_time:
                     space_n = self.max_nectar_carried - self.nectar_carried
                     space_p = self.max_pollen_carried - self.pollen_carried
                     nectar_got, pollen_got, restore = self.collect_target.collect(
@@ -122,6 +134,8 @@ class Bee:
                     self.nectar_carried += actual_n
                     self.pollen_carried += actual_p
                     self.stamina = min(self.max_stamina, self.stamina + restore)
+                    if actual_n > 0 or actual_p > 0:
+                        self.upgrade.add_exp(actual_n, actual_p)
                     self.collect_progress = 0
                     if (
                         self.nectar_carried >= self.max_nectar_carried
@@ -194,6 +208,7 @@ class Bee:
         if self.collecting and self.collect_target:
             bar_w = 24
             bar_h = 4
-            pct = self.collect_progress / self.collect_target.collect_time
+            effective_time = self.collect_target.collect_time * self.upgrade.get_collect_speed_mult()
+            pct = self.collect_progress / effective_time
             pygame.draw.rect(surface, BLACK, (sx - bar_w // 2 - 1, sy - 18, bar_w + 2, bar_h + 2))
             pygame.draw.rect(surface, GOLD, (sx - bar_w // 2, sy - 17, int(bar_w * pct), bar_h))
