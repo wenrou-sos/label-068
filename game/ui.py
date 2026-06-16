@@ -51,11 +51,28 @@ def draw_hud(screen, hive, bee, upgrade, season_index, season_timer, day_count, 
     screen.blit(season_text, (SCREEN_WIDTH - 160, 10))
 
     if weather:
-        from weather import WEATHER_INFO
+        from weather import WEATHER_INFO, WEATHER_WINDY
+        import math
         w_info = WEATHER_INFO.get(weather.current, {})
         w_name = w_info.get("name", "")
         w_text = FONT_MEDIUM.render(w_name, True, WHITE)
         screen.blit(w_text, (SCREEN_WIDTH - 160, 65))
+
+        if weather.current == WEATHER_WINDY:
+            cx = SCREEN_WIDTH - 60
+            cy = 78
+            pygame.draw.circle(screen, (255, 255, 255, 150), (cx, cy), 14, 2)
+            arr_len = 10
+            ax = cx + int(math.cos(weather.wind_angle) * arr_len)
+            ay = cy + int(math.sin(weather.wind_angle) * arr_len)
+            pygame.draw.line(screen, WHITE, (cx, cy), (ax, ay), 2)
+            perp = weather.wind_angle + math.pi * 0.75
+            hx1 = ax + int(math.cos(perp) * 5)
+            hy1 = ay + int(math.sin(perp) * 5)
+            hx2 = ax + int(math.cos(weather.wind_angle + math.pi * 1.25) * 5)
+            hy2 = ay + int(math.sin(weather.wind_angle + math.pi * 1.25) * 5)
+            pygame.draw.line(screen, WHITE, (ax, ay), (hx1, hy1), 2)
+            pygame.draw.line(screen, WHITE, (ax, ay), (hx2, hy2), 2)
 
     exp_w = 120
     exp_h = 8

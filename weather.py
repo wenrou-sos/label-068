@@ -57,30 +57,35 @@ class WindLine:
     def __init__(self):
         self.reset()
 
-    def reset(self):
-        self.x = random.uniform(-100, 900)
-        self.y = random.uniform(0, 600)
+    def reset(self, wind_angle=0):
+        angle = wind_angle + random.uniform(-0.2, 0.2)
+        self.angle = angle
         self.length = random.randint(30, 80)
         self.speed = random.uniform(200, 400)
         self.alpha = random.randint(60, 140)
         self.life = random.uniform(0.5, 1.5)
         self.max_life = self.life
+        self.x = random.uniform(0, SCREEN_WIDTH)
+        self.y = random.uniform(0, SCREEN_HEIGHT)
 
-    def update(self, dt):
-        self.x += self.speed * dt
-        self.y += random.uniform(-10, 10) * dt
+    def update(self, dt, wind_angle=0):
+        self.angle = wind_angle + random.uniform(-0.1, 0.1)
+        self.x += math.cos(self.angle) * self.speed * dt
+        self.y += math.sin(self.angle) * self.speed * dt
         self.life -= dt
-        if self.life <= 0 or self.x > 900:
-            self.reset()
+        if self.life <= 0 or self.x < -100 or self.x > SCREEN_WIDTH + 100 or self.y < -100 or self.y > SCREEN_HEIGHT + 100:
+            self.reset(wind_angle)
 
     def draw(self, surface):
         fade = max(0, self.life / self.max_life)
         alpha_val = int(self.alpha * fade)
         if alpha_val < 10:
             return
-        start = (int(self.x), int(self.y))
-        end = (int(self.x + self.length), int(self.y + random.randint(-2, 2)))
-        pygame.draw.line(surface, (200, 200, 220), start, end, 1)
+        start_x = int(self.x)
+        start_y = int(self.y)
+        end_x = int(self.x + math.cos(self.angle) * self.length)
+        end_y = int(self.y + math.sin(self.angle) * self.length)
+        pygame.draw.line(surface, (200, 200, 220), (start_x, start_y), (end_x, end_y), 1)
 
 
 class HeatParticle:
@@ -122,7 +127,7 @@ class WeatherSystem:
         self.notification = ""
         self.notification_timer = 0
         self.notification_duration = 3.0
-        self.wind_angle = 0
+        self.wind_angle = random.uniform(0, math.pi * 2)
         self.rain_drops = [RainDrop() for _ in range(80)]
         self.wind_lines = [WindLine() for _ in range(15)]
         self.heat_particles = [HeatParticle() for _ in range(40)]
@@ -138,15 +143,15 @@ class WeatherSystem:
             self.notification_timer -= dt
 
         if self.current == WEATHER_WINDY:
-            self.wind_angle += random.uniform(-0.5, 0.5) * dt
-            self.wind_angle = max(-0.3, min(0.3, self.wind_angle))
+            self.wind_angle += random.uniform(-0.3, 0.3) * dt
+            self.wind_angle = self.wind_angle % (math.pi * 2)
 
         if self.current == WEATHER_RAINY:
             for drop in self.rain_drops:
                 drop.update(dt)
         elif self.current == WEATHER_WINDY:
             for line in self.wind_lines:
-                line.update(dt)
+                line.update(dt, self.wind_angle)
         elif self.current == WEATHER_HOT:
             for particle in self.heat_particles:
                 particle.update(dt)
@@ -168,14 +173,14 @@ class WeatherSystem:
             self.notification_timer = self.notification_duration
 
             if new_weather == WEATHER_WINDY:
-                self.wind_angle = random.choice([-1, 1]) * random.uniform(0.1, 0.3)
+                self.wind_angle = random.uniform(0, math.pi * 2)
 
             if new_weather == WEATHER_RAINY:
                 for drop in self.rain_drops:
                     drop.reset()
             elif new_weather == WEATHER_WINDY:
                 for line in self.wind_lines:
-                    line.reset()
+                    line.reset(self.wind_angle)
             elif new_weather == WEATHER_HOT:
                 for particle in self.heat_particles:
                     particle.reset()
